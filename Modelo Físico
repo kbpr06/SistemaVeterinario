@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS animal (
   nombre              TEXT NOT NULL,
   sexo                TEXT NOT NULL DEFAULT 'Desconocido', -- M/H/Desconocido
   fechaNacimientoEst  TEXT, -- YYYY-MM-DD
+  edadEstimadaMeses   INTEGER,
   color               TEXT,
   estadoReproductivo  TEXT,
   numeroMicrochip     TEXT,
