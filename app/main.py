@@ -20,6 +20,24 @@ from app.services.especie_service import EspecieService
 from app.data.raza_repository import RazaRepository
 from app.services.raza_service import RazaService
 
+from app.data.usuario_repository import UsuarioRepository
+from app.services.usuario_service import UsuarioService
+
+from app.data.atencion_repository import AtencionRepository
+from app.services.atencion_service import AtencionService
+
+from app.data.tipo_vacuna_repository import TipoVacunaRepository
+from app.services.tipo_vacuna_service import TipoVacunaService
+
+from app.data.vacuna_aplicada_repository import VacunaAplicadaRepository
+from app.services.vacuna_aplicada_service import VacunaAplicadaService
+
+from app.data.tipo_desparasitacion_repository import TipoDesparasitacionRepository
+from app.services.tipo_desparasitacion_service import TipoDesparasitacionService
+
+from app.data.desparasitacion_aplicada_repository import DesparasitacionAplicadaRepository
+from app.services.desparasitacion_aplicada_service import DesparasitacionAplicadaService
+
 
 
 
@@ -238,8 +256,150 @@ def prueba_razas(especie_service, raza_service):
     for x in raza_service.listar_por_especie(gato["idEspecie"]):
         print(f"- [{x['idRaza']}] {x['nombreRaza']}")
 
+def prueba_usuarios(usuario_service: UsuarioService):
+    print("\n=== PRUEBA: USUARIOS SISTEMA ===")
+
+    # 1) Crear admin_sistema inicial si no existe
+    try:
+        creado = usuario_service.crear_admin_sistema_si_no_existe("admin", "Admin123!")
+        if creado:
+            print(f"✅ Admin sistema creado con idUsuario={creado} (usuario: admin / clave: Admin123!)")
+        else:
+            print("✅ Ya existe un admin_sistema activo. No se crea otro.")
+    except Exception as e:
+        print(f"⚠️ No se pudo crear admin_sistema inicial: {e}")
+
+    # 2) Probar login correcto
+    try:
+        user = usuario_service.login("ADMIN", "Admin123!")
+        print("✅ Login OK:", user)
+    except Exception as e:
+        print("❌ Login falló:", e)
+
+    # 3) Probar login incorrecto
+    try:
+        usuario_service.login("admin", "mala_clave")
+        print("❌ Esto no debería imprimirse (login incorrecto aceptado)")
+    except Exception as e:
+        print("✅ Login incorrecto rechazado:", e)
+
+def prueba_atenciones(atencion_service: AtencionService, id_animal: int, id_personal: int, id_motivo: int):
+    print("\n=== PRUEBA: ATENCIONES CLÍNICAS ===")
+
+    data_atencion = {
+        "idAnimal": id_animal,
+        "idPersonal": id_personal,
+        "idMotivoConsulta": id_motivo,
+        "fechaAtencion": "2025-12-29",
+        "sintomas": "Decaimiento y poco apetito (informado por tenedor).",
+        "pesoKg": 12.4,
+        "diagnostico": "Se observa cuadro leve, se deja registro clínico en texto.",
+        "tratamiento": "Indicaciones generales + control.",
+        "observaciones": "Atención de prueba para validar módulo.",
+        "fechaControlSugerida": "2026-01-10",
+        "lugarAtencion": "Consulta",
+    }
+
+    try:
+        new_id = atencion_service.crear_atencion(data_atencion)
+        print(f"✅ Atención creada con idAtencion = {new_id}")
+    except Exception as e:
+        print(f"⚠️ No se pudo crear atención: {e}")
+
+    print("\n--- HISTORIAL (Atenciones por animal) ---")
+    atenciones = atencion_service.listar_por_animal(id_animal)
+    for a in atenciones:
+        print(f"- [{a['idAtencion']}] {a['fechaAtencion']} | motivo={a['idMotivoConsulta']} | lugar={a['lugarAtencion']} | peso={a['pesoKg']}")
 
 
+def prueba_tipo_vacuna(service: TipoVacunaService):
+    print("\n=== PRUEBA: TIPO VACUNA ===")
+
+    data = {
+        "nombreVacuna": "Antirrábica",
+        "descripcion": "Vacuna contra la rabia.",
+        "idEspecie": 1,             # perro (ajusta si tu idEspecie es otro)
+        "intervaloRecMeses": 12
+    }
+
+    try:
+        new_id = service.crear(data)
+        print(f"✅ Tipo vacuna creado con idTipoVacuna = {new_id}")
+    except Exception as e:
+        print(f"⚠️ No se creó tipo vacuna: {e}")
+
+    print("\n--- LISTADO TIPOS VACUNA ACTIVOS ---")
+    for v in service.listar_activos():
+        print(f"- [{v['idTipoVacuna']}] {v['nombreVacuna']} | especie={v['idEspecie']} | intervalo={v['intervaloRecMeses']}")
+
+def prueba_vacuna_aplicada(service: VacunaAplicadaService):
+    print("\n=== PRUEBA: VACUNA APLICADA ===")
+
+    data = {
+        "id_atencion" : 1,
+        "id_tipo_vacuna" : 1,
+        "fecha_aplicacion" :"2025-12-29",
+        "fecha_proxima_dosis" : "2026-01-29",
+        "dosis" : "1 dosis",
+        "lote" : "L-001",
+        "observaciones" : "Vacuna aplicada en control sano"
+    }
+
+    try:
+        new_id = service.crear(**data)
+        print(f"✅ Vacuna aplicada creada con idVacunaAplicada = {new_id}")
+    except Exception as e:
+        print(f"⚠️ No se creó vacuna aplicada: {e}")
+
+    print("\n--- VACUNAS DE LA ATENCIÓN ---")
+    vacunas = service.listar_por_atencion(data["id_atencion"])
+    for v in vacunas:
+        print(
+            f"- [{v['idVacunaAplicada']}] "
+            f"fecha={v['fechaAplicacion']} "
+            f"tipo={v['idTipoVacuna']} "
+            f"próxima={v['fechaProximaDosis']}"
+        )
+
+def prueba_tipo_desparasitacion(service: TipoDesparasitacionService):
+    print("\n=== PRUEBA: TIPO DESPARASITACION ===")
+
+    try:
+        new_id = service.crear(
+            nombre_desparasitacion="Antiparasitario Externo",
+            tipo="Interna",
+            id_especie=1,            # perro (ajusta si corresponde)
+            intervalo_rec_meses=3
+        )
+        print(f"✅ Tipo desparasitación creado con idTipoDesparasitacion = {new_id}")
+    except Exception as e:
+        print(f"⚠️ No se creó tipo desparasitación: {e}")
+
+    print("\n--- LISTADO TIPOS DESPARASITACION ACTIVOS ---")
+    for d in service.listar_activos():
+        print(f"- [{d['idTipoDesparasitacion']}] {d['nombreDesparasitacion']} | tipo={d['tipo']} | especie={d['idEspecie']} | intervalo={d['intervaloRecMeses']}")
+
+def prueba_desparasitacion_aplicada(service: DesparasitacionAplicadaService):
+    print("\n=== PRUEBA: DESPARASITACION APLICADA ===")
+
+    try:
+        new_id = service.crear(
+            id_atencion=1,                 # ajusta según tu BD
+            id_tipo_desparasitacion=1,     # ajusta según tu BD
+            fecha_aplicacion="2025-12-29",
+            fecha_proxima_dosis="2026-03-29",
+            dosis="1 pipeta",
+            lote="D-001",
+            observaciones="Desparasitación aplicada en control sano"
+        )
+        print(f"✅ Desparasitación aplicada creada con idDesparasitacion = {new_id}")
+    except Exception as e:
+        print(f"⚠️ No se creó desparasitación aplicada: {e}")
+
+    print("\n--- DESPARASITACIONES DE LA ATENCIÓN ---")
+    desps = service.listar_por_atencion(1)
+    for d in desps:
+        print(f"- [{d['idDesparasitacion']}] fecha={d['fechaAplicacion']} tipo={d['idTipoDesparasitacion']} próxima={d['fechaProximaDosis']}")
 
 def main():
     print("=== PRUEBA SISTEMA VETERINARIO (BACKEND) ===")
@@ -270,8 +430,23 @@ def main():
     raza_repo = RazaRepository(db)
     raza_service = RazaService(raza_repo, especie_service)
 
+    usuario_repo = UsuarioRepository(db)
+    usuario_service = UsuarioService(usuario_repo)
 
+    atencion_repo = AtencionRepository(db)
+    atencion_service = AtencionService(atencion_repo, animal_repo, personal_repo, motivo_repo)
 
+    tipo_vacuna_repo = TipoVacunaRepository(db)
+    tipo_vacuna_service = TipoVacunaService(tipo_vacuna_repo, especie_repo)
+
+    vacuna_aplicada_repo = VacunaAplicadaRepository(db)
+    vacuna_aplicada_service = VacunaAplicadaService(vacuna_aplicada_repo)
+
+    tipo_des_repo = TipoDesparasitacionRepository(db)
+    tipo_des_service = TipoDesparasitacionService(tipo_des_repo)
+
+    desparasitacion_aplicada_repo = DesparasitacionAplicadaRepository(db)
+    desparasitacion_aplicada_service = DesparasitacionAplicadaService(desparasitacion_aplicada_repo)
 
 
     # Ejecutar pruebas
@@ -281,10 +456,12 @@ def main():
     id_motivo = prueba_motivos(motivo_service)
     id_especies = prueba_especies(especie_service)
     id_razas = prueba_razas(especie_service, raza_service)
-
-
-
-
+    id_usuarios = prueba_usuarios(usuario_service)
+    id_atenciones = prueba_atenciones(atencion_service, id_animal=1, id_personal=1, id_motivo=1)
+    id_tipo_vacuna = prueba_tipo_vacuna(tipo_vacuna_service)
+    id_vacuna_aplicada = prueba_vacuna_aplicada(vacuna_aplicada_service)
+    id_tipo_desparasitacion = prueba_tipo_desparasitacion(tipo_des_service)
+    id_desparasitacion_aplicada = prueba_desparasitacion_aplicada(desparasitacion_aplicada_service)
 
 
 if __name__ == "__main__":
