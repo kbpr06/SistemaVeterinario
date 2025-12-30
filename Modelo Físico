@@ -264,6 +264,56 @@ CREATE TABLE IF NOT EXISTS desparasitacion_aplicada (
 
 CREATE INDEX IF NOT EXISTS idx_desparasitacion_atencion ON desparasitacion_aplicada(idAtencion);
 
+-- -------------------------
+-- TIPO_MEDICAMENTO
+-- -------------------------
+CREATE TABLE IF NOT EXISTS tipo_medicamento (
+  idTipoMedicamento  INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombreMedicamento  TEXT NOT NULL UNIQUE,
+  categoria          TEXT NOT NULL,   -- antibiotico/antiinflamatorio/analgesico/vitaminas/otro
+  descripcion        TEXT,
+  estadoRegistro     INTEGER NOT NULL DEFAULT 1,
+  CHECK (estadoRegistro IN (0,1)),
+  CHECK (categoria IN ('antibiotico','antiinflamatorio','analgesico','vitaminas','antiparasitario','otro'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_tipo_medicamento_categoria
+ON tipo_medicamento(categoria);
+
+CREATE INDEX idx_tipo_medicamento_nombre 
+ON tipo_medicamento(nombreMedicamento);
+
+-- -------------------------
+-- MEDICAMENTO_APLICADO
+-- -------------------------
+CREATE TABLE IF NOT EXISTS medicamento_aplicado (
+  idMedicamentoAplicado  INTEGER PRIMARY KEY AUTOINCREMENT,
+  idAtencion             INTEGER NOT NULL,
+  idTipoMedicamento      INTEGER NOT NULL,
+  fechaAplicacion        TEXT NOT NULL,  -- normalmente igual a fechaAtencion, pero puede variar si lo aplican después
+  dosis                  TEXT,           -- libre: "0.5 ml", "10 mg/kg", etc.
+  via                    TEXT,           -- IM/IV/VO/SC/Topica/Otra
+  observaciones          TEXT,
+  estadoRegistro         INTEGER NOT NULL DEFAULT 1,
+  CHECK (estadoRegistro IN (0,1)),
+  CHECK (via IN ('IM','IV','VO','SC','Topica','Otra')),
+  FOREIGN KEY (idAtencion) REFERENCES atencion_clinica(idAtencion)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  FOREIGN KEY (idTipoMedicamento) REFERENCES tipo_medicamento(idTipoMedicamento)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS idx_med_aplicado_atencion
+ON medicamento_aplicado(idAtencion);
+
+CREATE INDEX IF NOT EXISTS idx_med_aplicado_tipo
+ON medicamento_aplicado(idTipoMedicamento);
+
+CREATE INDEX IF NOT EXISTS idx_med_aplicado_fecha
+ON medicamento_aplicado(fechaAplicacion);
+
 
 -- Evita borrar ANIMAL si tiene atenciones
 CREATE TRIGGER IF NOT EXISTS trg_no_delete_animal_con_atenciones
