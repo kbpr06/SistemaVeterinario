@@ -38,6 +38,12 @@ from app.services.tipo_desparasitacion_service import TipoDesparasitacionService
 from app.data.desparasitacion_aplicada_repository import DesparasitacionAplicadaRepository
 from app.services.desparasitacion_aplicada_service import DesparasitacionAplicadaService
 
+from app.data.tipo_medicamento_repository import TipoMedicamentoRepository
+from app.services.tipo_medicamento_service import TipoMedicamentoService
+
+from app.data.medicamento_aplicado_repository import MedicamentoAplicadoRepository
+from app.services.medicamento_aplicado_service import MedicamentoAplicadoService
+
 
 
 
@@ -366,9 +372,9 @@ def prueba_tipo_desparasitacion(service: TipoDesparasitacionService):
 
     try:
         new_id = service.crear(
-            nombre_desparasitacion="Antiparasitario Externo",
+            nombre_desparasitacion="Antiparasitario Interno",
             tipo="Interna",
-            id_especie=1,            # perro (ajusta si corresponde)
+            id_especie=2,            # perro (ajusta si corresponde)
             intervalo_rec_meses=3
         )
         print(f"✅ Tipo desparasitación creado con idTipoDesparasitacion = {new_id}")
@@ -400,6 +406,59 @@ def prueba_desparasitacion_aplicada(service: DesparasitacionAplicadaService):
     desps = service.listar_por_atencion(1)
     for d in desps:
         print(f"- [{d['idDesparasitacion']}] fecha={d['fechaAplicacion']} tipo={d['idTipoDesparasitacion']} próxima={d['fechaProximaDosis']}")
+
+def prueba_tipo_medicamento(service: TipoMedicamentoService):
+    print("\n=== PRUEBA: TIPO MEDICAMENTO ===")
+
+    data = {
+        "nombreMedicamento": "Coforta",
+        "categoria": "antiinflamatorio",
+        "descripcion": "Antiinflamatorio usado en consultas.",
+    }
+
+    try:
+        new_id = service.crear(data)
+        print(f"✅ Tipo medicamento creado con idTipoMedicamento = {new_id}")
+    except Exception as e:
+        print(f"⚠️ No se creó tipo medicamento: {e}")
+
+    print("\n--- LISTADO TIPOS MEDICAMENTO ACTIVOS ---")
+    for m in service.listar_activos():
+        print(f"- [{m['idTipoMedicamento']}] {m['nombreMedicamento']} | categoria={m['categoria']}")
+
+def prueba_medicamento_aplicado(service: MedicamentoAplicadoService):
+    print("\n=== PRUEBA: MEDICAMENTO APLICADO ===")
+
+    # Ajusta estos IDs según tus datos reales
+    data = {
+        "id_atencion": 1,
+        "id_tipo_medicamento": 1,   # ej: Antibiótico X
+        "fecha_aplicacion": "2025-12-29",
+        "dosis": "0.5 ml",
+        "via": "IM",
+        "observaciones": "Aplicado sin complicaciones"
+    }
+
+    try:
+        new_id = service.crear(**data)
+        print(f"✅ Medicamento aplicado creado con idMedicamentoAplicado = {new_id}")
+    except Exception as e:
+        print(f"⚠️ No se creó medicamento aplicado: {e}")
+
+    print("\n--- MEDICAMENTOS DE LA ATENCIÓN ---")
+    try:
+        meds = service.listar_por_atencion(data["id_atencion"])
+        for m in meds:
+            print(
+                f"- [{m['idMedicamentoAplicado']}] "
+                f"fecha={m['fechaAplicacion']} | "
+                f"tipo={m['idTipoMedicamento']} | "
+                f"vía={m['via']} | "
+                f"dosis={m['dosis']}"
+            )
+    except Exception as e:
+        print(f"⚠️ Error al listar medicamentos: {e}")
+
 
 def main():
     print("=== PRUEBA SISTEMA VETERINARIO (BACKEND) ===")
@@ -448,6 +507,13 @@ def main():
     desparasitacion_aplicada_repo = DesparasitacionAplicadaRepository(db)
     desparasitacion_aplicada_service = DesparasitacionAplicadaService(desparasitacion_aplicada_repo)
 
+    tipo_medicamento_repo = TipoMedicamentoRepository(db)
+    tipo_medicamento_service = TipoMedicamentoService(tipo_medicamento_repo)
+    med_aplicado_repo = MedicamentoAplicadoRepository(db)
+    med_aplicado_service = MedicamentoAplicadoService(med_aplicado_repo, atencion_repo, tipo_medicamento_repo)
+
+
+
 
     # Ejecutar pruebas
     id_tenedor = prueba_tenedores(tenedor_service)
@@ -462,6 +528,9 @@ def main():
     id_vacuna_aplicada = prueba_vacuna_aplicada(vacuna_aplicada_service)
     id_tipo_desparasitacion = prueba_tipo_desparasitacion(tipo_des_service)
     id_desparasitacion_aplicada = prueba_desparasitacion_aplicada(desparasitacion_aplicada_service)
+    id_tipo_medicamento = prueba_tipo_medicamento(tipo_medicamento_service)
+    id_medicamento_aplicado = prueba_medicamento_aplicado(med_aplicado_service)
+
 
 
 if __name__ == "__main__":
